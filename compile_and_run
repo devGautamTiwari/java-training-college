@@ -1,0 +1,10 @@
+#!/bin/bash
+
+CLASSPATH="project/bin"
+
+# Compile Java code
+javac -cp "project/lib/mysql-connector-j-8.3.0.jar" -d "$CLASSPATH" project/src/*.java project/src/**/*.java
+
+
+# Run Java program
+java -cp "project/lib/mysql-connector-j-8.3.0.jar:$CLASSPATH" project.src.Main

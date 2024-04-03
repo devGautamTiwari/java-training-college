@@ -1,5 +1,7 @@
 package project.src.model;
 
+import static project.src.model.DBConstants.*;
+
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.FileReader;
@@ -19,22 +21,36 @@ import java.util.regex.Pattern;
 
 public class DatabaseManager {
     private Connection connection;
+    private static String dbUrl;
+    private static String dbName;
+    private static String dbUser;
+    private static String dbPassword;
 
-    public DatabaseManager() {
+    static {
         Properties properties = new Properties();
         try (FileInputStream fis = new FileInputStream("project/resources/database.properties")) {
             properties.load(fis);
 
-            String dbUrl = properties.getProperty("db.url");
-            String dbName = properties.getProperty("db.name");
-            String dbUser = properties.getProperty("db.user");
-            String dbPassword = properties.getProperty("db.password");
+            dbUrl = properties.getProperty("db.url");
+            dbName = properties.getProperty("db.name");
+            dbUser = properties.getProperty("db.user");
+            dbPassword = properties.getProperty("db.password");
+        } catch (IOException e) {
+            e.printStackTrace(); // Handle file loading error
+        }
+    }
 
-            // Load the MySQL JDBC driver
+    public DatabaseManager() {
+        // Load the MySQL JDBC driver
+        try {
             Class.forName("com.mysql.cj.jdbc.Driver");
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace(); // Handle driver loading error
+        }
 
-            // Establish the database connection using properties from the file
-            connection = DriverManager.getConnection(dbUrl, dbUser, dbPassword);
+        try {
+            createConnection(false);
+            connection = getConnection();
             boolean databaseExists = checkDatabaseExists(connection, dbName);
             if (!databaseExists) {
                 initDatabase("project/resources/init.sql");
@@ -44,20 +60,20 @@ public class DatabaseManager {
                 DatabaseMetaData metaData = connection.getMetaData();
 
                 // Check if the required tables exist
-                boolean usersTableExists = checkTableExists(metaData, "tbl_user");
-                boolean formTableExists = checkTableExists(metaData, "tbl_form");
-                boolean questionTableExists = checkTableExists(metaData, "tbl_question");
-                boolean optionTableExists = checkTableExists(metaData, "tbl_option");
-                boolean attemptTableExists = checkTableExists(metaData, "tbl_attempt");
-                boolean scoreTableExists = checkTableExists(metaData, "tbl_score");
+                boolean usersTableExists = checkTableExists(metaData, USER_TABLE);
+                boolean quizTableExists = checkTableExists(metaData, QUIZ_TABLE);
+                boolean questionTableExists = checkTableExists(metaData, QUESTION_TABLE);
+                boolean optionTableExists = checkTableExists(metaData, OPTION_TABLE);
+                boolean attemptTableExists = checkTableExists(metaData, ATTEMPT_TABLE);
+                boolean scoreTableExists = checkTableExists(metaData, SCORE_TABLE);
 
-                if (usersTableExists && formTableExists && questionTableExists
+                if (usersTableExists && quizTableExists && questionTableExists
                         && optionTableExists && attemptTableExists && scoreTableExists) {
                     System.out.println("All required tables exist.");
                     connection.close();
                     // Establish the database connection to the specific database
                     connection = DriverManager.getConnection(dbUrl + dbName, dbUser, dbPassword);
-    
+
                 } else {
                     System.out.println("Some or all required tables do not exist.");
                     initDatabase("project/resources/init.sql");
@@ -65,7 +81,7 @@ public class DatabaseManager {
                 }
             }
 
-        } catch (IOException | ClassNotFoundException | SQLException e) {
+        } catch (SQLException e) {
             e.printStackTrace(); // Handle file loading, driver loading, or connection error
         }
     }
@@ -165,9 +181,26 @@ public class DatabaseManager {
         // connection.commit();
     }
 
+    public void createConnection(boolean withDB) {
+        closeConnection();
+
+        try {
+            // Establish the database connection using properties from the file
+            if (withDB)
+                connection = DriverManager.getConnection(dbUrl + dbName, dbUser, dbPassword);
+            else
+                connection = DriverManager.getConnection(dbUrl, dbUser, dbPassword);
+
+        } catch (SQLException e) {
+            e.printStackTrace(); // Handle file loading, driver loading, or connection error
+        }
+    }
+
     public void closeConnection() {
         try {
-            connection.close();
+            if (connection != null && !connection.isClosed()) {
+                connection.close();
+            }
         } catch (SQLException e) {
             e.printStackTrace(); // Handle SQL error
         }
@@ -175,23 +208,6 @@ public class DatabaseManager {
 
     public Connection getConnection() {
         return connection;
-    }
-    // Other methods for database operations
-    public void getAllUsers() {
-        try {
-            // Prepare a statement to execute
-            PreparedStatement statement = connection.prepareStatement("SELECT * FROM tbl_user");
-
-            // Execute the statement and get the result set
-            ResultSet resultSet = statement.executeQuery();
-
-            // Iterate over the result set and print the user names
-            while (resultSet.next()) {
-                System.out.println(resultSet.getString("full_name"));
-            }
-        } catch (SQLException e) {
-            e.printStackTrace(); // Handle SQL error
-        }
     }
 
     public static void main(String[] args) {

@@ -1,6 +1,10 @@
 package project.src.controller;
 
+import project.src.model.QuizModel;
+import project.src.model.SessionManager;
 import project.src.model.UserModel;
+import project.src.view.AppPanel;
+import project.src.view.CreateAQuizPanel;
 import project.src.view.SignInPanel;
 
 import javax.swing.*;
@@ -33,10 +37,18 @@ public class SignInController {
     private void signIn() {
         String username = signInPanel.getUsernameField().getText();
         String password = new String(signInPanel.getPasswordField().getPassword());
-  
-        if (userModel.authenticateUser(username, password)) {
-            JOptionPane.showMessageDialog(null, "Sign In Successful!");
-            // Code to proceed after successful sign in
+        if (username.isEmpty() || password.isEmpty()) {
+            JOptionPane.showMessageDialog(null, "Please fill in all fields.");
+            return;
+        }
+
+        boolean isAuthenticated = userModel.authenticateUser(username, password);
+        if (isAuthenticated) {
+            // JOptionPane.showMessageDialog(null, "Sign In Successful!");
+            System.out.println("Sign In Successful!");
+            
+            signInPanel.getAuthPanel().switchToAppPanel();
+         
         } else {
             JOptionPane.showMessageDialog(null, "Invalid username or password. Please try again.");
         }

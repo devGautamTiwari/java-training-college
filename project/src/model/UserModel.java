@@ -23,14 +23,22 @@ public class UserModel {
 
     public boolean authenticateUser(String username, String password) {
         try {
-            String query = "SELECT password_hash FROM tbl_user WHERE username = ?";
+            String query = "SELECT id, full_name, password_hash FROM tbl_user WHERE username = ?";
             PreparedStatement statement = connection.prepareStatement(query);
             statement.setString(1, username);
             ResultSet resultSet = statement.executeQuery();
 
             if (resultSet.next()) {
                 String storedHash = resultSet.getString("password_hash");
-                return verifyPassword(password, storedHash);
+                boolean isAuthenticated = verifyPassword(password, storedHash);
+                if (isAuthenticated) {
+                    
+                    String encryptedId = EncryptionUtil.encrypt(resultSet.getString("id"), KeyManager.getSecretKey());
+                    String fullName = resultSet.getString("full_name");
+                    System.out.println("setting session");
+                    SessionManager.setUserSession(encryptedId, username, fullName);
+                    return true;
+                }
             }
         } catch (SQLException e) {
             e.printStackTrace(); // Handle SQL error
@@ -43,20 +51,31 @@ public class UserModel {
             String hashedPassword = hashPassword(password);
 
             String query = "INSERT INTO tbl_user (full_name, username, password_hash) VALUES (?, ?, ?)";
-            PreparedStatement statement = connection.prepareStatement(query);
+            PreparedStatement statement = connection.prepareStatement(query, PreparedStatement.RETURN_GENERATED_KEYS);
             statement.setString(1, fullName);
             statement.setString(2, username);
             statement.setString(3, hashedPassword);
 
             int rowsInserted = statement.executeUpdate();
-            return rowsInserted > 0; // If a row is inserted, creation successful
+            // If a row is inserted, creation successful
+            if (rowsInserted > 0) {
+                ResultSet generatedKeys = statement.getGeneratedKeys();
+                if (generatedKeys.next()) {
+                    String id = String.valueOf(generatedKeys.getInt(1));
+                    System.out.println(id);
+                    String encryptedId = EncryptionUtil.encrypt(id, KeyManager.getSecretKey());
+                    SessionManager.setUserSession(encryptedId, username, fullName);
+                    return true;
+                }
+            }
+
         } catch (SQLException e) {
             e.printStackTrace(); // Handle SQL error
         }
         return false;
     }
 
-    public String hashPassword(String password) {
+    private String hashPassword(String password) {
         SecureRandom random = new SecureRandom();
         byte[] salt = new byte[16];
         random.nextBytes(salt);
@@ -73,7 +92,7 @@ public class UserModel {
         return encodedSalt + ":" + encodedHash;
     }
 
-    public boolean verifyPassword(String password, String storedPassword) {
+    private boolean verifyPassword(String password, String storedPassword) {
         try {
             // Extract the salt and hash from the stored password
             String[] parts = storedPassword.split(":");
@@ -109,5 +128,7 @@ public class UserModel {
         return null;
     }
 
-    // Other methods for user-related database operations
+    public Connection getConnection() {
+        return connection;
+    }
 }

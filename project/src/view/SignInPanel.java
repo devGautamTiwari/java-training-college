@@ -10,8 +10,6 @@ import java.awt.CardLayout;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
-import java.awt.GridLayout;
-
 
 public class SignInPanel extends JPanel {
     private JLabel panelTitle;
@@ -20,9 +18,9 @@ public class SignInPanel extends JPanel {
     private JButton signInButton;
     private JButton switchToSignUpButton;
     private CardLayout cardLayout;
-    
 
     public SignInPanel(CardLayout cardLayout) {
+
         this.cardLayout = cardLayout;
         initUI();
     }
@@ -37,13 +35,12 @@ public class SignInPanel extends JPanel {
         usernameField = new JTextField();
         passwordField = new JPasswordField();
         signInButton = new JButton("Sign In");
-        switchToSignUpButton = new JButton("Switch to Sign Up");
+        switchToSignUpButton = new JButton("Don't have an account? Sign Up");
 
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.anchor = GridBagConstraints.CENTER;
         gbc.ipadx = 5;
         gbc.ipady = 10;
- 
 
         gbc.gridx = 0;
         gbc.gridy = 0;
@@ -74,7 +71,7 @@ public class SignInPanel extends JPanel {
         add(passwordField, gbc);
 
         gbc.insets.set(5, 0, 5, 0);
-       gbc.ipady = 15;
+        gbc.ipady = 15;
         gbc.weightx = 0;
         gbc.weighty = 0;
         gbc.gridx = 0;
@@ -83,7 +80,6 @@ public class SignInPanel extends JPanel {
         add(signInButton, gbc);
 
         gbc.ipady = 10;
-        gbc.fill = GridBagConstraints.NONE;
         gbc.gridx = 0;
         gbc.gridy = 4;
         gbc.gridwidth = 2;
@@ -107,8 +103,12 @@ public class SignInPanel extends JPanel {
         return passwordField;
     }
 
+    public AuthPanel getAuthPanel() {
+        return (AuthPanel) this.getParent().getParent(); 
+    }
+
     public CardLayout getCardLayout() {
         return cardLayout;
     }
-    
+
 }
